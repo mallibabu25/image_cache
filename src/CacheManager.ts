@@ -1,7 +1,7 @@
 // @flow
-import * as _ from "lodash";
-import * as FileSystem from "expo-file-system";
-import SHA1 from "crypto-js/sha1";
+import * as _ from 'lodash';
+import * as FileSystem from 'expo-file-system';
+import SHA1 from 'crypto-js/sha1';
 
 export interface DownloadOptions {
   md5?: boolean;
@@ -26,7 +26,11 @@ export class CacheEntry {
     if (exists) {
       return path;
     }
-    const result = await FileSystem.createDownloadResumable(uri, tmpPath, options).downloadAsync();
+    const result = await FileSystem.createDownloadResumable(
+      uri,
+      tmpPath,
+      options
+    ).downloadAsync();
     // If the image download failed, we don't cache anything
     if (result && result.status !== 200) {
       return undefined;
@@ -51,14 +55,19 @@ export default class CacheManager {
     await FileSystem.makeDirectoryAsync(BASE_DIR);
   }
 
-  static getMultiple(uriArray: Array<string>, options: DownloadOptions): Array<string> {
+  static getMultiple(
+    uriArray: Array<string>,
+    options: DownloadOptions
+  ): Array<string> {
     let resultArray = new Array();
 
     uriArray.forEach(async (uri) => {
       if (!CacheManager.entries[uri]) {
-        CacheManager.entries[uri] = new CacheEntry(uri, options);
+        const entry = new CacheEntry(uri, options);
+        const localUriPath = entry.getPath();
+        CacheManager.entries[uri] = entry;
+        resultArray.push(localUriPath);
       }
-      resultArray.push(CacheManager.entries[uri]);
     });
     return resultArray;
   }
@@ -85,9 +94,17 @@ export default class CacheManager {
   }
 }
 
-const getCacheEntry = async (uri: string): Promise<{ exists: boolean; path: string; tmpPath: string }> => {
-  const filename = uri.substring(uri.lastIndexOf("/"), uri.indexOf("?") === -1 ? uri.length : uri.indexOf("?"));
-  const ext = filename.indexOf(".") === -1 ? ".jpg" : filename.substring(filename.lastIndexOf("."));
+const getCacheEntry = async (
+  uri: string
+): Promise<{ exists: boolean; path: string; tmpPath: string }> => {
+  const filename = uri.substring(
+    uri.lastIndexOf('/'),
+    uri.indexOf('?') === -1 ? uri.length : uri.indexOf('?')
+  );
+  const ext =
+    filename.indexOf('.') === -1
+      ? '.jpg'
+      : filename.substring(filename.lastIndexOf('.'));
   const path = `${BASE_DIR}${SHA1(uri)}${ext}`;
   const tmpPath = `${BASE_DIR}${SHA1(uri)}-${_.uniqueId()}${ext}`;
   // TODO: maybe we don't have to do this every time
